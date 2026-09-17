@@ -233,11 +233,11 @@ button, input, textarea { font: inherit; }
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-  gap: 7px;
+  gap: 5px;
   align-items: start;
-  margin-top: 2px;
+  margin-top: 1px;
 }
-.card-body .grid { grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 6px; margin-top: 5px; }
+.card-body .grid { grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 4px; margin-top: 3px; }
 
 /* 经历类卡片（含长句）横跨两列，避免整段描述被挤成细条 */
 .section-body > .card--group { grid-column: span 2; }
@@ -245,14 +245,14 @@ button, input, textarea { font: inherit; }
   .section-body > .card--group { grid-column: span 1; }
 }
 
-body[data-density="compact"] .grid { grid-template-columns: repeat(auto-fill, minmax(218px, 1fr)); gap: 6px; }
-body[data-density="compact"] .card-body .grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 5px; }
+body[data-density="compact"] .grid { grid-template-columns: repeat(auto-fill, minmax(218px, 1fr)); gap: 4px; }
+body[data-density="compact"] .card-body .grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 3px; }
 
 /* ----------------------------------------------------------------- 卡片 */
 
 .card {
   position: relative;
-  padding: 6px 9px 7px;
+  padding: 4px 8px 5px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel);
@@ -267,7 +267,7 @@ body[data-density="compact"] .card-body .grid { grid-template-columns: repeat(au
 .card.drop-after { box-shadow: inset 0 -3px 0 var(--accent), var(--shadow-lift); }
 .card.copied { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--panel)); }
 
-.card-head { display: flex; align-items: center; gap: 5px; min-height: 20px; }
+.card-head { display: flex; align-items: center; gap: 4px; min-height: 18px; }
 .drag-handle {
   flex: 0 0 auto;
   color: var(--border-strong);
@@ -289,18 +289,22 @@ body[data-density="compact"] .card-body .grid { grid-template-columns: repeat(au
 .card-head .spacer { flex: 1; }
 
 .card-value {
-  margin: 1px 0 0;
+  margin: 0;
   font-size: 16px;
-  line-height: 1.4;
+  line-height: 1.28;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 .card-value.expanded { display: block; -webkit-line-clamp: unset; line-clamp: unset; }
+
+/* 叶子卡统一高度，避免同一行因内容长短形成大片留白。 */
+.card--leaf { height: 70px; overflow: hidden; }
+.card--leaf:has(.card-value.expanded) { height: auto; overflow: visible; }
 
 .card--group { background: var(--panel-soft); border-left: 3px solid color-mix(in srgb, var(--accent) 45%, var(--border)); }
 .card--group > .card-head .card-title { font-size: 15px; font-weight: 700; color: var(--text); }
@@ -318,8 +322,10 @@ body[data-density="compact"] .card-body .grid { grid-template-columns: repeat(au
   line-height: 1.45;
 }
 
-body[data-density="compact"] .card { padding: 5px 7px 6px; border-radius: 8px; }
-body[data-density="compact"] .card-value { font-size: 14px; -webkit-line-clamp: 3; line-clamp: 3; }
+body[data-density="compact"] .card { padding: 4px 7px; border-radius: 8px; }
+body[data-density="compact"] .card--leaf { height: 60px; }
+body[data-density="compact"] .card--leaf:has(.card-value.expanded) { height: auto; }
+body[data-density="compact"] .card-value { font-size: 14px; -webkit-line-clamp: 2; line-clamp: 2; }
 body[data-density="compact"] .card-title { font-size: 12px; }
 body[data-density="compact"] .card--group > .card-head .card-title { font-size: 14px; }
 
