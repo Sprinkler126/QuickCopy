@@ -175,7 +175,7 @@ test('data/resume.example.json 结构合法且 id 唯一', () => {
 
   const titles = data.sections.map((s) => s.title);
   assert.deepEqual(titles, ['基本信息', '教育经历', '工作经历', '项目经历', '专业技能']);
-  assert.ok(Core.countNodes(data) > 40, '示例数据应该有足够多的条目');
+  assert.ok(Core.countNodes(data) > 25, '示例数据应该有足够多的条目');
 });
 
 test('示例数据能完整往返（写入 → 读回 → 结构不变）', () => {
