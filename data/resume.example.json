@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "title": "简历速取（示例数据）",
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "sections": [
+    {
+      "id": "basic",
+      "title": "基本信息",
+      "children": [
+        { "id": "basic-name", "title": "姓名", "value": "张三" },
+        { "id": "basic-intent", "title": "求职意向", "value": "Java 后端开发 / AI 应用开发" },
+        { "id": "basic-phone", "title": "电话", "value": "13800000000" },
+        { "id": "basic-email", "title": "邮箱", "value": "zhangsan@example.com" },
+        { "id": "basic-degree", "title": "学历", "value": "硕士在读" },
+        { "id": "basic-city", "title": "所在城市", "value": "北京" },
+        { "id": "basic-github", "title": "GitHub", "value": "https://github.com/example" }
+      ]
+    },
+    {
+      "id": "education",
+      "title": "教育经历",
+      "children": [
+        {
+          "id": "edu-master",
+          "title": "某某大学",
+          "children": [
+            { "id": "edu-master-time", "title": "时间", "value": "2024-09 ~ 2027-06" },
+            { "id": "edu-master-major", "title": "专业", "value": "计算机科学与技术" },
+            { "id": "edu-master-honor", "title": "荣誉", "value": "连续获校级奖学金" },
+            { "id": "edu-master-format", "title": "网申格式", "value": "2024.09-2027.06  某某大学计算机系  计算机科学与技术专业学习  攻读硕士学位（在读，预计 2027.06 毕业）" }
+          ]
+        },
+        {
+          "id": "edu-bachelor",
+          "title": "某某工业大学",
+          "children": [
+            { "id": "edu-bachelor-time", "title": "时间", "value": "2020-09 ~ 2024-06" },
+            { "id": "edu-bachelor-major", "title": "专业", "value": "计算机科学与技术" },
+            { "id": "edu-bachelor-honor", "title": "排名与荣誉", "value": "专业排名前 20%，连续获校级奖学金" },
+            { "id": "edu-bachelor-format", "title": "网申格式", "value": "2020.09-2024.06  某某工业大学计算机系  计算机科学与技术专业学习  取得工学学士学位" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "title": "工作经历",
+      "children": [
+        {
+          "id": "work-1",
+          "title": "某某科技有限公司",
+          "children": [
+            { "id": "work-1-time", "title": "时间", "value": "2025-07 ~ 2025-10" },
+            { "id": "work-1-form", "title": "工作形式", "value": "实习" },
+            { "id": "work-1-dept", "title": "部门", "value": "交易平台部" },
+            { "id": "work-1-role", "title": "职位", "value": "后端开发" },
+            { "id": "work-1-place", "title": "地点", "value": "北京" },
+            { "id": "work-1-1", "title": "接口性能优化", "value": "定位并优化下单链路的慢查询与 N+1 查询，P99 响应时间从 820ms 降到 190ms。" },
+            { "id": "work-1-2", "title": "缓存与一致性", "value": "设计本地缓存 + Redis 二级缓存策略，给热点数据加上互斥重建与随机过期，缓存击穿时的数据库峰值 QPS 下降约 70%。" },
+            { "id": "work-1-format", "title": "网申格式", "value": "2025.07-2025.10  某某科技有限公司·交易平台部   后端开发（实习）   【证明人】" }
+          ]
+        },
+        {
+          "id": "work-2",
+          "title": "某某研究院",
+          "children": [
+            { "id": "work-2-time", "title": "时间", "value": "2025-03 ~ 2025-06" },
+            { "id": "work-2-form", "title": "工作形式", "value": "实习" },
+            { "id": "work-2-role", "title": "职位", "value": "数据分析工程师" },
+            { "id": "work-2-place", "title": "地点", "value": "南京" },
+            { "id": "work-2-1", "title": "数据治理", "value": "梳理三个业务系统的指标口径，统一成一套可复算的指标定义，消除跨部门对账争议。" },
+            { "id": "work-2-format", "title": "网申格式", "value": "2025.03-2025.06  某某研究院   数据分析工程师（实习）   【证明人】" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "title": "项目经历",
+      "children": [
+        {
+          "id": "proj-1",
+          "title": "某智能问答系统",
+          "children": [
+            { "id": "proj-1-time", "title": "时间", "value": "2025-03 ~ 2025-06" },
+            { "id": "proj-1-role", "title": "角色", "value": "项目负责人" },
+            { "id": "proj-1-summary", "title": "项目简介", "value": "面向内部知识库的问答系统，支持自然语言提问并给出可追溯的原文出处。" },
+            { "id": "proj-1-stack", "title": "技术栈", "value": "Python · FastAPI · 向量检索 · 精排模型 · PostgreSQL" },
+            { "id": "proj-1-1", "title": "检索链路", "value": "向量召回与关键词召回并行，再用精排模型融合；低置信度结果直接拒答，避免编造。" },
+            { "id": "proj-1-2", "title": "评测体系", "value": "建立分难度评测集，每次改动都回归实测，命中率与拒答准确率随版本记录。" }
+          ]
+        },
+        {
+          "id": "proj-2",
+          "title": "某图像分类研究",
+          "children": [
+            { "id": "proj-2-time", "title": "时间", "value": "2025-01 ~ 2025-05" },
+            { "id": "proj-2-role", "title": "角色", "value": "第一作者" },
+            { "id": "proj-2-summary", "title": "项目简介", "value": "面向分布偏移场景下的图像分类，研究更稳健的特征表示与后处理校准方法。" },
+            { "id": "proj-2-result", "title": "成果", "value": "论文被某国际会议录用（示例文本）。" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "skills",
+      "title": "专业技能",
+      "children": [
+        { "id": "skill-lang", "title": "语言与框架", "value": "Java · Python · Spring Boot · MyBatis-Plus · FastAPI" },
+        { "id": "skill-storage", "title": "存储与工程化", "value": "MySQL · PostgreSQL · Redis · Docker · Git · Linux" },
+        { "id": "skill-ai", "title": "AI Native", "value": "RAG · 向量检索 · Prompt 编排 · 多模态理解" },
+        { "id": "skill-cert", "title": "证书 / 其他", "value": "某某云大模型工程师认证 · CET-4 / CET-6" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "quickcopy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "本地简历速取助手：层级卡片展示，点一下即复制到剪贴板",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

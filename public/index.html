@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>简历速取</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>📋</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">📋</span>
+    <div class="brand-text">
+      <h1 id="docTitle">简历速取</h1>
+      <button type="button" id="dataPath" class="path" title="点击查看数据文件路径">加载中…</button>
+    </div>
+  </div>
+
+  <div class="tools">
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="搜索内容…（/ 聚焦）" autocomplete="off" spellcheck="false">
+    </div>
+    <button type="button" id="btnDensity" class="btn ghost" title="切换卡片密度">紧凑模式</button>
+    <button type="button" id="btnExpandAll" class="btn ghost">展开全部</button>
+    <button type="button" id="btnCollapseAll" class="btn ghost">收起全部</button>
+    <button type="button" id="btnImport" class="btn ghost">导入</button>
+    <button type="button" id="btnExport" class="btn ghost">导出</button>
+    <button type="button" id="btnSave" class="btn primary">保存</button>
+    <span id="saveState" class="save-state is-idle" title="数据文件的保存状态">已同步</span>
+  </div>
+  <input id="fileInput" type="file" accept="application/json,.json" hidden>
+</header>
+
+<nav class="chipbar" id="chipbar" aria-label="分类导航"></nav>
+
+<div id="banner" class="banner" hidden>
+  <span id="bannerText"></span>
+  <span class="banner-actions">
+    <button type="button" id="bannerReload" class="btn tiny">加载最新</button>
+    <button type="button" id="bannerKeep" class="btn tiny ghost">保留我的修改</button>
+  </span>
+</div>
+
+<main id="board" class="board" aria-live="polite"></main>
+
+<div id="toast" class="toast" hidden></div>
+
+<dialog id="editor" class="editor">
+  <div class="editor-form">
+    <h2 id="editorHeading">编辑</h2>
+    <label class="field">
+      <span>标题 / 字段名</span>
+      <input id="editTitle" type="text" autocomplete="off">
+    </label>
+    <label class="field" id="editorValueField">
+      <span>内容（点击卡片时复制的文字）</span>
+      <textarea id="editValue" rows="5" spellcheck="false"></textarea>
+    </label>
+    <details class="field advanced">
+      <summary>高级：自定义复制文本</summary>
+      <textarea id="editCopy" rows="2" spellcheck="false" placeholder="留空则复制上面的内容"></textarea>
+    </details>
+    <div class="editor-actions">
+      <button type="button" id="editMoveUp" class="btn tiny ghost">上移</button>
+      <button type="button" id="editMoveDown" class="btn tiny ghost">下移</button>
+      <button type="button" id="editDelete" class="btn tiny danger">删除</button>
+      <span class="spacer"></span>
+      <button type="button" id="editCancel" class="btn">取消</button>
+      <button type="button" id="editSave" class="btn primary">保存</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

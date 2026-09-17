@@ -1,0 +1,11 @@
+# 行尾统一：避免跨平台 clone 后脚本无法执行 / 文本乱码
+* text=auto eol=lf
+
+# Windows 专用脚本保留 CRLF（PowerShell 读带 BOM 的 CRLF 文件正常）
+*.bat text eol=crlf
+*.vbs text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制文件不要做行尾转换
+*.ico binary
+*.png binary
