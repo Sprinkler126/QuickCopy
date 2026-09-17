@@ -82,6 +82,16 @@ test('removeNode / moveNode 只在同级内生效', () => {
   assert.equal(Core.locate(data, 'c1'), null, '删除父节点应带走子树');
 });
 
+test('reorderNode 可把卡片放到同级目标的前后，拒绝跨层拖放', () => {
+  const data = sample();
+  assert.equal(Core.reorderNode(data, 'a', 'b', true), true);
+  assert.deepEqual(data.sections[0].children.map((n) => n.id), ['b', 'a']);
+  assert.equal(Core.reorderNode(data, 'a', 'b', false), true);
+  assert.deepEqual(data.sections[0].children.map((n) => n.id), ['a', 'b']);
+  assert.equal(Core.reorderNode(data, 'a', 'c1', true), false, '不同父级不能移动');
+  assert.equal(Core.reorderNode(data, 'a', 'a', true), false, '不能拖到自身');
+});
+
 test('countNodes / walk 覆盖整棵树', () => {
   const data = sample();
   assert.equal(Core.countNodes(data), 6); // s1、a、b、s2、c、c1

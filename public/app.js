@@ -22,7 +22,9 @@
     query: '',
     density: localStorage.getItem(LS_DENSITY) || 'normal',
     collapsed: readCollapsed(),
-    editorId: null
+    editorId: null,
+    dragId: null,
+    dragChanged: false
   };
 
   var els = {};
@@ -312,9 +314,14 @@
     var card = el('article', 'card ' + (leaf ? 'card--leaf' : 'card--group') +
       (depth >= 2 ? ' card--nested' : ''));
     card.dataset.id = node.id;
-    card.title = leaf ? '点击复制内容' : '点标题复制名称，点其他位置复制整段';
+    card.draggable = !state.query;
+    card.title = state.query ? '搜索时不能调整顺序' : (leaf ? '拖拽卡片可调整同级顺序；点击复制内容' : '拖拽卡片可调整同级顺序；点标题复制名称，点其他位置复制整段');
 
     var head = el('div', 'card-head');
+    var dragHandle = el('span', 'drag-handle', '⠿');
+    dragHandle.title = state.query ? '清空搜索后可拖拽排序' : '拖拽调整同级顺序';
+    dragHandle.setAttribute('aria-hidden', 'true');
+    head.appendChild(dragHandle);
     if (!leaf) {
       var chev = el('button', 'chev', '▾');
       chev.type = 'button';
@@ -386,6 +393,10 @@
   /* --------------------------------------------------------------- 事件 */
 
   function onBoardClick(event) {
+    if (state.dragChanged) {
+      state.dragChanged = false;
+      return;
+    }
     var target = event.target;
 
     var collapseBtn = target.closest('.chev');
@@ -447,6 +458,62 @@
   function cssEscape(value) {
     if (window.CSS && CSS.escape) return CSS.escape(value);
     return String(value).replace(/["\\]/g, '\\$&');
+  }
+
+  function clearDragIndicators() {
+    Array.prototype.forEach.call(els.board.querySelectorAll('.dragging, .drop-before, .drop-after'), function (node) {
+      node.classList.remove('dragging', 'drop-before', 'drop-after');
+    });
+  }
+
+  function getDropTarget(event) {
+    var target = event.target.closest('.card');
+    if (!target || !state.dragId || target.dataset.id === state.dragId) return null;
+    var source = Core.locate(state.data, state.dragId);
+    var destination = Core.locate(state.data, target.dataset.id);
+    if (!source || !destination || source.list !== destination.list) return null;
+    var rect = target.getBoundingClientRect();
+    return { card: target, after: event.clientY > rect.top + rect.height / 2 };
+  }
+
+  function onDragStart(event) {
+    var card = event.target.closest('.card');
+    if (!card || state.query || event.target.closest('button')) {
+      event.preventDefault();
+      return;
+    }
+    state.dragId = card.dataset.id;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', state.dragId);
+    requestAnimationFrame(function () { card.classList.add('dragging'); });
+  }
+
+  function onDragOver(event) {
+    var drop = getDropTarget(event);
+    if (!drop) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    clearDragIndicators();
+    drop.card.classList.add(drop.after ? 'drop-after' : 'drop-before');
+  }
+
+  function onDrop(event) {
+    var drop = getDropTarget(event);
+    if (!drop) return;
+    event.preventDefault();
+    var moved = Core.reorderNode(state.data, state.dragId, drop.card.dataset.id, drop.after);
+    clearDragIndicators();
+    state.dragId = null;
+    if (moved) {
+      state.dragChanged = true;
+      mutate();
+      toast('已调整卡片顺序');
+    }
+  }
+
+  function onDragEnd() {
+    clearDragIndicators();
+    state.dragId = null;
   }
 
   function handleAction(act, id) {
@@ -582,6 +649,10 @@
 
   function bind() {
     els.board.addEventListener('click', onBoardClick);
+    els.board.addEventListener('dragstart', onDragStart);
+    els.board.addEventListener('dragover', onDragOver);
+    els.board.addEventListener('drop', onDrop);
+    els.board.addEventListener('dragend', onDragEnd);
     els.chipbar.addEventListener('click', function (event) {
       var chip = event.target.closest('.chip');
       if (!chip) return;

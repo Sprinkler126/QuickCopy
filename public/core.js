@@ -142,6 +142,24 @@
     return true;
   }
 
+  /**
+   * 把节点拖到同级 targetId 的前面或后面。
+   * 不允许跨父级移动，避免拖拽时意外改变简历的层级结构。
+   */
+  function reorderNode(data, id, targetId, placeAfter) {
+    var source = locate(data, id);
+    var target = locate(data, targetId);
+    if (!source || !target || source === target || source.list !== target.list) return false;
+
+    var from = source.index;
+    var to = target.index + (placeAfter ? 1 : 0);
+    if (from < to) to -= 1; // 删除源节点后，目标索引左移
+    if (from === to) return false;
+    source.list.splice(from, 1);
+    source.list.splice(to, 0, source.node);
+    return true;
+  }
+
   /* ---------------------------------------------------------------- 搜索 */
 
   function matches(node, q) {
@@ -276,6 +294,7 @@
     insertNode: insertNode,
     removeNode: removeNode,
     moveNode: moveNode,
+    reorderNode: reorderNode,
     filterTree: filterTree,
     normalizeData: normalizeData,
     emptyData: emptyData,
