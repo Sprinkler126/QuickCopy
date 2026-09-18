@@ -11,7 +11,10 @@
 #>
 
 param(
-  [int]$Port = 5178
+  [int]$Port = 5178,
+  # 默认配置文件（透传给 node 的 --data）；留空表示用 server.js 默认的 data\resume.json
+  # 注意：这里不能叫 $DataFile —— PowerShell 变量名大小写不敏感，会与下面的 $dataFile 撞成同一个变量
+  [string]$ConfigFile = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,6 +27,10 @@ Set-Location $root
 $logDir = Join-Path $root 'logs'
 $dataDir = Join-Path $root 'data'
 $dataFile = Join-Path $dataDir 'resume.json'
+if ($ConfigFile) {
+  if ([System.IO.Path]::IsPathRooted($ConfigFile)) { $dataFile = $ConfigFile }
+  else { $dataFile = Join-Path $root $ConfigFile }
+}
 $stateFile = Join-Path $logDir 'tray.state.json'
 $iconFile = Join-Path $root 'assets\quickcopy.ico'
 $serverOut = Join-Path $logDir 'server.log'
@@ -85,6 +92,8 @@ function Start-Server {
     '--port', $script:chosenPort,
     '--parent-pid', $PID
   )
+  # 默认配置文件（未指定 -ConfigFile 时用 server.js 自己的默认值 data\resume.json）
+  if ($script:dataFile) { $arguments += @('--data', $script:dataFile) }
   return Start-Process -FilePath $script:nodeExe -ArgumentList $arguments `
     -WorkingDirectory $root -WindowStyle Hidden -PassThru `
     -RedirectStandardOutput $serverOut -RedirectStandardError $serverErr

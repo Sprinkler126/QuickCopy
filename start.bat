@@ -10,6 +10,14 @@ chcp 65001 >nul
 title QuickCopy - local server
 cd /d "%~dp0"
 
+rem ---- startup settings (edit these two lines) ----
+rem  PORT   : port the local service listens on
+rem  CONFIG : default config file. BEWARE: the server listens on all
+rem           interfaces now, so anyone on the same LAN can read whatever
+rem           this points at. The example file is the safe default.
+set "PORT=18437"
+set "CONFIG=data\resume.example.json"
+
 echo.
 echo   QuickCopy - Resume Copier
 echo   ----------------------------------------
@@ -42,14 +50,15 @@ if %NODE_MAJOR% LSS 18 (
 )
 
 echo   Node.js : %NODE_VERSION%
-echo   Data    : data\resume.json
+echo   Port    : %PORT%
+echo   Config  : %CONFIG%
 echo.
 echo   Starting... your browser will open automatically.
 echo   Close this window to stop the server.
 echo.
 
-rem ---- 3. start (extra args are forwarded, e.g. start.bat --port 6000) ----
-node server.js %*
+rem ---- 3. start (extra args are forwarded and override the defaults above) ----
+node server.js --port %PORT% --data "%CONFIG%" %*
 set "EXITCODE=%ERRORLEVEL%"
 
 echo.
