@@ -380,7 +380,9 @@ async function main() {
   const server = createApp(opts);
   await listen(server, opts, 10);
 
-  const url = `http://${opts.host}:${opts.port}/`;
+  // 0.0.0.0 是监听所有网卡的通配地址，浏览器本机打开时使用回环地址更可靠。
+  const browserHost = opts.host === '0.0.0.0' ? '127.0.0.1' : opts.host;
+  const url = `http://${browserHost}:${opts.port}/`;
   console.log('');
   console.log('  简历速取助手已启动');
   console.log('  ── 页面：    ' + url);
