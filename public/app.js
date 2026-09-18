@@ -4,7 +4,7 @@
  * 交互约定：
  *   - 点卡片任意位置 = 复制（叶子卡复制内容；整段卡复制多行全文）
  *   - 卡头右侧小按钮：＋ 加子项 / ✎ 编辑 / 🗑 删除
- *   - 数据自动保存回服务端的默认 JSON 文件（900ms 防抖），也可手动保存
+ *   - 数据自动保存到调用方浏览器的 localStorage（900ms 防抖），也可手动保存
  */
 (function () {
   'use strict';
@@ -12,6 +12,7 @@
   var Core = window.ResumeCore;
   var LS_COLLAPSED = 'quickcopy.collapsed';
   var LS_DENSITY = 'quickcopy.density';
+  var LS_DATA = 'quickcopy.data.v1';
 
   var state = {
     data: null,
@@ -131,14 +132,37 @@
 
   /* ------------------------------------------------------------ 数据读写 */
 
-  function applyPayload(payload) {
-    state.data = payload.data;
-    state.mtime = payload.mtime || 0;
-    state.path = payload.path || state.path;
-    (payload.warnings || []).forEach(function (w) { toast('数据提示：' + w, 3200); });
+  function readBrowserData() {
+    try {
+      var raw = localStorage.getItem(LS_DATA);
+      if (!raw) return null;
+      return Core.normalizeData(JSON.parse(raw)).data;
+    } catch (err) {
+      toast('浏览器里的本地数据无法读取，将改用默认配置', 3600);
+      return null;
+    }
   }
 
-  function loadFromServer() {
+  function persistBrowserData() {
+    localStorage.setItem(LS_DATA, JSON.stringify(state.data));
+  }
+
+  function applyData(data) {
+    state.data = data;
+    state.mtime = Date.now();
+    state.path = '浏览器本地存储（仅当前设备和浏览器）';
+  }
+
+  /** 优先恢复本浏览器的本地数据；没有时才读取一次服务器提供的默认配置。 */
+  function loadInitialData() {
+    var cached = readBrowserData();
+    if (cached) {
+      applyData(cached);
+      state.dirty = false;
+      setSaveState('idle', '本机已保存');
+      render();
+      return Promise.resolve();
+    }
     return fetch('/api/data', { cache: 'no-store' })
       .then(function (res) {
         return res.json().then(function (payload) {
@@ -147,10 +171,10 @@
         });
       })
       .then(function (payload) {
-        applyPayload(payload);
-        hideBanner();
+        applyData(payload.data);
+        persistBrowserData();
         state.dirty = false;
-        setSaveState('idle');
+        setSaveState('saved', '默认配置已保存到本机');
         render();
       });
   }
@@ -164,63 +188,32 @@
   }
 
   function saveNow() {
-    if (!state.data) return Promise.resolve();
-    if (state.saving) return Promise.resolve();
+    if (!state.data || state.saving) return Promise.resolve();
     clearTimeout(saveTimer);
     state.saving = true;
     setSaveState('saving');
-    return fetch('/api/data', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(state.data)
-    }).then(function (res) {
-      return res.json().then(function (payload) {
-        if (!res.ok) throw new Error(payload.error || ('HTTP ' + res.status));
-        // 服务端返回规范化后的数据；不重渲染，避免打断阅读位置
-        state.data = payload.data;
-        state.mtime = payload.mtime || 0;
-        state.dirty = false;
-        setSaveState('saved');
-      });
-    }).catch(function (err) {
+    try {
+      persistBrowserData();
+      state.mtime = Date.now();
+      state.dirty = false;
+      setSaveState('saved', '已保存到本机');
+      return Promise.resolve();
+    } catch (err) {
       state.dirty = true;
-      setSaveState('error', '保存失败');
-      toast('保存失败：' + err.message, 4000);
-    }).then(function () {
+      setSaveState('error', '本机保存失败');
+      toast('浏览器本地保存失败：' + err.message, 4000);
+      return Promise.resolve();
+    } finally {
       state.saving = false;
-    });
+    }
   }
 
-  /** 任何改动都走这里：重新渲染 + 排队自动保存 */
+  /** 任何改动都走这里：重新渲染 + 排队保存到当前浏览器 */
   function mutate() {
     Core.touch(state.data);
     render();
     scheduleSave();
   }
-
-  /* ------------------------------------------------------------- 外部改动 */
-
-  function startWatching() {
-    setInterval(function () {
-      if (state.saving) return;
-      fetch('/api/meta', { cache: 'no-store' })
-        .then(function (res) { return res.json(); })
-        .then(function (meta) {
-          if (!meta.mtime || meta.mtime === state.mtime) return;
-          if (state.dirty) { showBanner('数据文件已被外部修改，但页面里还有未保存的改动。'); return; }
-          return loadFromServer().then(function () {
-            toast('检测到数据文件更新，已重新加载', 2200);
-          });
-        })
-        .catch(function () { /* 服务没起来时静默 */ });
-    }, 2500);
-  }
-
-  function showBanner(text) {
-    els.bannerText.textContent = text;
-    els.banner.hidden = false;
-  }
-  function hideBanner() { els.banner.hidden = true; }
 
   /* --------------------------------------------------------------- 渲染 */
 
@@ -272,7 +265,7 @@
       return box;
     }
     box.appendChild(el('p', null, '当前还没有任何内容。'));
-    box.appendChild(el('p', null, '点右上角「导入」载入 JSON，或直接编辑数据文件后页面会自动刷新。'));
+    box.appendChild(el('p', null, '点右上角「导入」载入 JSON，或新增分类开始填写；所有修改只保存在当前浏览器。'));
     var add = el('button', 'btn primary', '新增分类');
     add.type = 'button';
     add.addEventListener('click', function () { addSection(null); });
@@ -634,7 +627,7 @@
         return;
       }
       var result = Core.normalizeData(raw);
-      if (!window.confirm('导入将替换当前 ' + Core.countNodes(state.data) + ' 个条目（原文件会先备份到 data/backups/）。继续？')) return;
+      if (!window.confirm('导入将替换当前浏览器中的 ' + Core.countNodes(state.data) + ' 个条目。继续？')) return;
       state.data = result.data;
       state.collapsed.clear();
       persistCollapsed();
@@ -708,16 +701,6 @@
       copy(state.path, '数据文件路径');
     });
 
-    els.bannerReload.addEventListener('click', function () {
-      loadFromServer().then(function () { toast('已加载磁盘上的最新数据'); });
-    });
-    els.bannerKeep.addEventListener('click', function () {
-      hideBanner();
-      // 保留本地改动：把当前状态直接写回磁盘
-      state.dirty = true;
-      scheduleSave();
-    });
-
     els.editSave.addEventListener('click', commitEditor);
     els.editCancel.addEventListener('click', closeEditor);
     els.editDelete.addEventListener('click', function () {
@@ -788,10 +771,7 @@
   function boot() {
     bind();
     applyDensity();
-    loadFromServer()
-      .then(function () {
-        startWatching();
-      })
+    loadInitialData()
       .catch(function (err) {
         renderOffline(err);
       });

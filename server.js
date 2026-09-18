@@ -6,9 +6,9 @@
  *
  * 只做两件事：
  *   1. 把 public/ 目录当静态站点托管（浏览器打开 http://127.0.0.1:<port>/）
- *   2. 读写「默认位置」的 JSON 数据文件，供页面自动加载 / 自动保存
+ *   2. 提供只读的默认 JSON 配置；调用方的数据只保存在其浏览器中
  *
- * 零依赖，只用 Node 内置模块。默认只监听 127.0.0.1，不对外网暴露。
+ * 零依赖，只用 Node 内置模块。默认监听全部网卡，供受信任局域网访问。
  *
  * 用法：
  *   node server.js [--port 5178] [--data <resume.json 路径>] [--no-open]
@@ -19,7 +19,6 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { exec } = require('node:child_process');
-const crypto = require('node:crypto');
 
 const Core = require('./public/core.js');
 
@@ -54,7 +53,6 @@ function parseArgs(argv) {
     port: Number(process.env.QUICKCOPY_PORT) || 5178,
     host: process.env.QUICKCOPY_HOST || '0.0.0.0',
     dataFile: process.env.QUICKCOPY_DATA || DEFAULT_DATA_FILE,
-    profileByIp: process.env.QUICKCOPY_PER_IP !== '0',
     open: true
   };
   for (let i = 0; i < argv.length; i++) {
@@ -72,12 +70,6 @@ function parseArgs(argv) {
         break;
       case '--host':
         opts.host = takeValue();
-        break;
-      case '--shared-data':
-        opts.profileByIp = false;
-        break;
-      case '--per-ip':
-        opts.profileByIp = true;
         break;
       case '--no-open':
         opts.open = false;
@@ -116,18 +108,15 @@ function emptyTemplate() {
 }
 
 /** 读取数据文件；文件不存在时用空模板落盘。返回 { data, warnings } */
-async function readDataFile(file, initialData) {
+async function readDataFile(file) {
   let text;
   try {
     text = await fsp.readFile(file, 'utf8');
   } catch (err) {
     if (err.code !== 'ENOENT') throw err;
-    const template = initialData || emptyTemplate();
+    const template = emptyTemplate();
     await writeDataFile(file, template, { backup: false });
-    return {
-      data: template,
-      warnings: [initialData ? `首次访问，已加载默认配置` : `数据文件不存在，已创建空模板：${file}`]
-    };
+    return { data: template, warnings: [`默认配置不存在，已创建空模板：${file}`] };
   }
   let raw;
   try {
@@ -179,27 +168,6 @@ async function fileMtime(file) {
   } catch {
     return 0;
   }
-}
-
-/** 仅使用 TCP 连接地址；不信任可伪造的 X-Forwarded-For 请求头。 */
-function getClientIp(req) {
-  const address = (req.socket && req.socket.remoteAddress) || 'unknown';
-  return address.startsWith('::ffff:') ? address.slice(7) : address;
-}
-
-function profileFileForRequest(dataFile, req, profileByIp) {
-  if (!profileByIp) return dataFile;
-  // 文件名只保存 IP 的不可逆短哈希，避免在磁盘目录中直接暴露设备地址。
-  const key = crypto.createHash('sha256').update(getClientIp(req)).digest('hex').slice(0, 24);
-  return path.join(path.dirname(dataFile), 'profiles', key + '.json');
-}
-
-/** 首次访问的设备从默认配置克隆一份，后续读写自己的配置文件。 */
-async function readDataForRequest(defaultFile, profileFile) {
-  if (defaultFile === profileFile) return readDataFile(defaultFile);
-  const base = await readDataFile(defaultFile);
-  const profile = await readDataFile(profileFile, base.data);
-  return { data: profile.data, warnings: base.warnings.concat(profile.warnings) };
 }
 
 /* ------------------------------------------------------------------ HTTP */
@@ -262,51 +230,32 @@ async function serveStatic(req, res, pathname) {
 
 function createApp(opts) {
   const dataFile = opts.dataFile;
-  const profileByIp = Boolean(opts.profileByIp);
 
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || opts.host}`);
     const pathname = url.pathname;
-    const requestDataFile = profileFileForRequest(dataFile, req, profileByIp);
 
     try {
       if (pathname === '/api/meta') {
         if (req.method !== 'GET') return sendJson(res, 405, { error: '方法不允许' });
         return sendJson(res, 200, {
-          path: requestDataFile,
-          mtime: await fileMtime(requestDataFile)
+          path: dataFile,
+          mtime: await fileMtime(dataFile)
         });
       }
 
       if (pathname === '/api/data') {
         if (req.method === 'GET') {
-          const { data, warnings } = await readDataForRequest(dataFile, requestDataFile);
+          const { data, warnings } = await readDataFile(dataFile);
           return sendJson(res, 200, {
             data,
             warnings,
-            mtime: await fileMtime(requestDataFile),
-            path: requestDataFile
+            mtime: await fileMtime(dataFile),
+            path: dataFile
           });
         }
         if (req.method === 'PUT') {
-          const body = await readBody(req);
-          let raw;
-          try {
-            raw = JSON.parse(body);
-          } catch (err) {
-            return sendJson(res, 400, { error: `请求体不是合法 JSON：${err.message}` });
-          }
-          const { data, warnings } = Core.normalizeData(raw);
-          Core.touch(data);
-          // 首次 PUT 也先生成此设备的默认副本，保证不同 IP 的数据互不覆盖。
-          await readDataForRequest(dataFile, requestDataFile);
-          await writeDataFile(requestDataFile, data);
-          return sendJson(res, 200, {
-            data,
-            warnings,
-            mtime: await fileMtime(requestDataFile),
-            path: requestDataFile
-          });
+          return sendJson(res, 405, { error: '默认配置是只读的；请在调用方浏览器中保存数据。' });
         }
         return sendJson(res, 405, { error: '方法不允许' });
       }
@@ -362,10 +311,8 @@ async function main() {
       '  node server.js [选项]',
       '',
       '  --port <n>    监听端口，默认 5178（被占用时自动 +1）',
-      '  --data <file> 数据文件路径，默认 ./data/resume.json（作为默认配置）',
+      '  --data <file> 默认配置文件路径，默认 ./data/resume.json（只读）',
       '  --host <ip>   监听地址，默认 0.0.0.0（局域网可访问）',
-      '  --shared-data 关闭按 IP 分配置，所有访问者共用一个数据文件',
-      '  --per-ip      开启按 IP 分配置（默认开启）',
       '  --no-open     启动后不自动打开浏览器',
       '  --parent-pid  内部参数：该进程结束后自动退出（托盘启动器用）'
     ].join('\n'));
@@ -386,10 +333,10 @@ async function main() {
   console.log('');
   console.log('  简历速取助手已启动');
   console.log('  ── 页面：    ' + url);
-  console.log('  ── 默认配置：' + opts.dataFile);
+  console.log('  ── 默认配置：' + opts.dataFile + '（只读）');
   console.log('  ── 条目数：  ' + Core.countNodes(data) + '，分类：' + data.sections.length);
-  console.log('  ── 访问模式：' + (opts.profileByIp ? '按客户端 IP 分别保存配置' : '所有访问者共用默认配置'));
-  console.log('  ── 编辑数据文件后，页面会自动重新加载（Ctrl+C 停止服务）');
+  console.log('  ── 数据保存：每位调用方浏览器独立保存，服务端不接收写入');
+  console.log('  ── 默认配置文件更新后，仅首次访问 / 清除本地数据的浏览器会加载新版本（Ctrl+C 停止服务）');
   console.log('');
   if (opts.open) openBrowser(url);
 
@@ -423,7 +370,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = {
-  createApp, readDataFile, readDataForRequest, writeDataFile, parseArgs, emptyTemplate,
-  getClientIp, profileFileForRequest
-};
+module.exports = { createApp, readDataFile, writeDataFile, parseArgs, emptyTemplate };
