@@ -26,8 +26,19 @@
 | macOS / Linux / Git Bash | `./start.sh` |
 | 任意平台 | `node server.js` |
 
-浏览器会自动打开 <http://127.0.0.1:5178/>。
-服务只监听 `127.0.0.1`，不对外网开放。
+浏览器会自动打开 <http://127.0.0.1:5178/>。默认监听 `0.0.0.0`，同一局域网内的设备可以用电脑的局域网 IP 访问，例如 `http://192.168.1.10:5178/`。
+
+> **局域网访问说明**：请仅在受信任的家庭 / 办公网络中使用，并在系统防火墙中放行该端口。服务没有登录或加密传输；IP 只用于区分配置，**不能作为身份验证**。同一 NAT 出口或反向代理后的设备可能被识别为同一个用户。
+
+### 局域网独立配置
+
+`data/resume.json` 是默认配置。局域网设备第一次打开页面时，会自动复制这份默认配置到 `data/profiles/` 下的独立文件；之后该设备的编辑、拖拽排序和自动保存只影响自己的配置，不会覆盖其他 IP 的内容。配置文件名仅保存 IP 的哈希值，避免直接把局域网地址写入文件名。
+
+- 默认：按客户端 IP 分别保存配置。
+- `--shared-data`：关闭隔离，所有设备共用 `data/resume.json`。
+- `--per-ip`：显式开启按 IP 隔离（默认已开启）。
+
+查看本机局域网 IP：Windows 在命令行执行 `ipconfig`，macOS / Linux 执行 `ip addr` 或 `ifconfig`；将显示的 IPv4 地址替换到上方链接即可。
 
 ### 托盘模式：`start-tray.vbs`
 
@@ -85,8 +96,9 @@ cp data/resume.example.json data/resume.json
 ```
 
 ```bash
-node server.js --data "D:/我的简历/resume.json"   # 换一个数据文件
+node server.js --data "D:/我的简历/resume.json"   # 换一个默认配置文件
 node server.js --port 6000                        # 换端口
+node server.js --shared-data                      # 所有人共用同一份数据
 node server.js --no-open                          # 不自动开浏览器
 ```
 
@@ -147,8 +159,9 @@ public/styles.css    样式（含深色模式）
 public/app.js        页面逻辑：渲染、复制、编辑、自动保存
 public/core.js       纯逻辑层：树操作 / 校验 / 复制文本（浏览器与 Node 共用）
 data/resume.example.json  示例数据（人名单位均为虚构，随仓库提交）
-data/resume.json     你的数据（默认位置，已被 .gitignore 排除）
-data/backups/        自动备份（已被 .gitignore 排除）
+data/resume.json     默认配置（已被 .gitignore 排除）
+data/profiles/       按访问 IP 生成的独立配置与备份（已被 .gitignore 排除）
+data/backups/        共享数据模式的自动备份（已被 .gitignore 排除）
 logs/                运行时日志（已被 .gitignore 排除）
 test/                node:test 测试
 .gitignore           排除真实简历数据、备份、日志、会话附件
@@ -165,8 +178,8 @@ npm start       # 等同 node server.js
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `GET` | `/api/data` | 读取数据（文件不存在时自动创建模板） |
-| `PUT` | `/api/data` | 整体覆盖写入（校验 + 原子写 + 备份） |
-| `GET` | `/api/meta` | 只取文件路径与 mtime，用于探测外部改动 |
+| `GET` | `/api/data` | 读取当前 IP 的数据（首次访问从默认配置初始化） |
+| `PUT` | `/api/data` | 写入当前 IP 的配置（校验 + 原子写 + 备份） |
+| `GET` | `/api/meta` | 只取当前 IP 配置的路径与 mtime，用于探测外部改动 |
 
 写入是「先写临时文件再 rename」，不会写出半截的 JSON。

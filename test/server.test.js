@@ -6,7 +6,9 @@ const fsp = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
-const { createApp } = require('../server.js');
+const {
+  createApp, profileFileForRequest, readDataForRequest, writeDataFile
+} = require('../server.js');
 
 /** 起一个只监听回环、用临时数据文件的服务器，跑完自动清理 */
 async function withServer(fn) {
@@ -22,6 +24,30 @@ async function withServer(fn) {
     await fsp.rm(dir, { recursive: true, force: true });
   }
 }
+
+test('按客户端 IP 隔离配置，并为首次访问预加载默认配置', async () => {
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'quickcopy-profile-'));
+  try {
+    const defaultFile = path.join(dir, 'resume.json');
+    await writeDataFile(defaultFile, {
+      version: 1, title: '默认简历', updatedAt: '2026-01-01T00:00:00.000Z', sections: []
+    }, { backup: false });
+    const requestA = { socket: { remoteAddress: '192.168.1.20' } };
+    const requestB = { socket: { remoteAddress: '192.168.1.21' } };
+    const profileA = profileFileForRequest(defaultFile, requestA, true);
+    const profileB = profileFileForRequest(defaultFile, requestB, true);
+
+    assert.notEqual(profileA, profileB);
+    assert.match(profileA, /profiles[\\/]([a-f0-9]{24})\.json$/);
+    assert.equal(profileFileForRequest(defaultFile, requestA, false), defaultFile);
+
+    const loaded = await readDataForRequest(defaultFile, profileA);
+    assert.equal(loaded.data.title, '默认简历');
+    await fsp.access(profileA); // 首次访问应创建独立配置文件
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+});
 
 test('数据文件不存在时，GET /api/data 自动创建空模板', async () => {
   await withServer(async ({ base, dataFile }) => {
